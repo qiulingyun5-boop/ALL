@@ -27,8 +27,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     try {
       await signInWithGoogle();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert("神识连接失败 (Login Error):\n" + (err.message || "未知错误") + "\n\n请检查 Vercel 域名是否在 Firebase 的 Authorized Domains 列表中。");
     } finally {
       setLoading(false);
     }

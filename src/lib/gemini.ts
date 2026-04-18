@@ -1,8 +1,28 @@
+import { GoogleGenAI, Type } from "@google/genai";
 
+const USER_KEY = "AIzaSyDRfnATJQFXUg2mrs9rhBhwvUOLq4Q7xsI";
+const envKey = import.meta.env.VITE_GEMINI_API_KEY1;
+const apiKey = envKey || USER_KEY;
+
+// 生产环境自检逻辑 (Vercel Console 可见)
+if (import.meta.env.PROD) {
+  console.log("✅ [识海核心状态]: 灵力通道已建立。模式: 前端直连。");
+  if (!envKey) {
+    console.log("ℹ️ [识海提示]: 未发现环境变量，已启用稳固秘钥模式。");
+  }
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey });
+
+/**
+ * 核心提醒：使用 'gemini-flash-latest' 以确保兼容性。
+ */
+const MODEL_NAME = "gemini-flash-latest"; 
 
 export async function analyzeProgressPhotos(photos: { url: string; type: string }[]) {
   try {
-    // Convert blob/data URLs to base64 on client before sending to server
+    if (!apiKey) throw new Error("API Key 未配置，请在 Vercel 环境变量中设置 VITE_GEMINI_API_KEY1");
+
     const processedPhotos = await Promise.all(photos.map(async (p) => {
       const response = await fetch(p.url);
       const blob = await response.blob();
@@ -11,29 +31,36 @@ export async function analyzeProgressPhotos(photos: { url: string; type: string 
         reader.onloadend = () => resolve(reader.result as string);
         reader.readAsDataURL(blob);
       });
-      return { data: base64.split(',')[1], type: p.type };
+      return { inlineData: { mimeType: "image/jpeg", data: base64.split(',')[1] } };
     }));
 
-    const response = await fetch('/api/ai/analyze-progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photos: processedPhotos })
+    const prompt = `
+      你是一位专业的健身教练和体态分析专家。
+      请分析这些用户的健身进度照片。
+      请以 JSON 格式返回结果，包含以下字段：
+      - bodyFat: 数字（百分比，仅数字）
+      - analysis: 详细的文本分析报告
+    `;
+
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      config: {
+        responseMimeType: "application/json",
+      },
+      contents: [{ role: "user", parts: [...processedPhotos, { text: prompt }] }],
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Server responded with ${response.status}`);
-    }
-
-    const data = await response.json();
-    return JSON.stringify(data);
+    return response.text;
   } catch (error: any) {
     console.error("AI Analysis Error:", error);
-    const errorMsg = error?.message || "网络请求失败";
+    let errorMsg = error?.message || "网络请求失败";
     
-    // Explicit debug alert as requested by user
+    if (errorMsg.includes("Unexpected token") || errorMsg.includes("<")) {
+      errorMsg = "服务器返回了非 JSON 响应（可能是 404 或 500 错误页）。请确认 Vercel 环境变量配置是否正确。";
+    }
+
     if (typeof window !== 'undefined') {
-      alert("⚠️ 【识海警示】AI 分析异常 (Photos):\n" + errorMsg + "\n\n1. 请检查网络连接。\n2. 若提示 API key invalid，请确保已在后台正确配置密钥。\n3. 服务器状态码: " + (error?.status || "未知"));
+      alert("⚠️ 【识海警示】AI 分析异常 (Photos):\n" + errorMsg + "\n\n1. 请检查网络连接。\n2. 确认 Vercel 环境变量已同步。");
     }
     
     return JSON.stringify({
@@ -45,27 +72,76 @@ export async function analyzeProgressPhotos(photos: { url: string; type: string 
 
 export async function getHealthAdvice(prompt: string) {
   try {
-    const response = await fetch('/api/ai/health-advice', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt })
+    if (!apiKey) throw new Error("API Key 未配置");
+
+    const response = await ai.models.generateContent({ 
+      model: MODEL_NAME,
+      config: {
+        systemInstruction: "你是一位隐居多年的修仙界健身宗师（仙导）。请以修仙者的口吻，结合现代健身 and 营养学，为后生小辈提供练体建议。回复应庄重而富有禅意，使用‘道友’、‘根骨’、‘灵气’等词汇，鼓励其早日结丹破境。回复需简洁直接。",
+      },
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Server error ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.text;
+    return response.text;
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    const errorMsg = error?.message || "灵力流转不畅";
+    let errorMsg = error?.message || "灵力流转不畅";
     
+    if (errorMsg.includes("Unexpected token") || errorMsg.includes("<")) {
+      errorMsg = "通讯中断 (非 JSON 响应)。请检查 Vercel 环境变量 VITE_GEMINI_API_KEY1 是否正确配置。";
+    }
+
     if (typeof window !== 'undefined') {
-      alert("⚠️ 【仙导传音中断】:\n" + errorMsg + "\n\n请检查灵气连接（网络）。服务器通讯异常。");
+      alert("⚠️ 【仙导传音中断】:\n" + errorMsg + "\n\n请检查网络及 VITE_GEMINI_API_KEY1 配置。");
     }
     
-    return "抱歉，道友。仙导识海震荡，暂无法回话。请检查灵气连接（网络）后再试。具体因由: " + errorMsg;
+    return "抱歉，道友。仙导识海震荡，暂无法回话。具体因由: " + errorMsg;
+  }
+}
+
+export async function analyzeNutritionLabel(base64Image: string) {
+  try {
+    if (!apiKey) throw new Error("API Key 未配置");
+
+    const prompt = `You are an expert nutrition analyst. Analyze this nutrition label image.
+    Extract: food name, protein, carbs, fat, calories.
+    IMPORTANT: All values MUST be normalized to 100g. If the label shows values per serving (e.g., "30g"), you MUST calculate the value for 100g.`;
+
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            proteinPer100g: { type: Type.NUMBER },
+            carbsPer100g: { type: Type.NUMBER },
+            fatPer100g: { type: Type.NUMBER },
+            caloriesPer100g: { type: Type.NUMBER },
+          },
+          required: ["name", "proteinPer100g", "carbsPer100g", "fatPer100g", "caloriesPer100g"],
+        }
+      },
+      contents: [
+        { inlineData: { mimeType: "image/jpeg", data: base64Image } },
+        { text: prompt }
+      ]
+    });
+
+    return JSON.parse(response.text || "{}");
+  } catch (error: any) {
+    console.error("Nutrition Analysis Error:", error);
+    let errorMsg = error?.message || "灵鉴识物失败";
+
+    if (errorMsg.includes("Unexpected token") || errorMsg.includes("<")) {
+      errorMsg = "解析异常 (非 JSON 响应)。请检查 API 密钥配置。";
+    }
+    
+    if (typeof window !== 'undefined') {
+      alert("⚠️ 【灵鉴视物中断】:\n" + errorMsg + "\n\n请检查图片清晰度及 VITE_GEMINI_API_KEY1 配置。");
+    }
+    
+    throw new Error(errorMsg);
   }
 }

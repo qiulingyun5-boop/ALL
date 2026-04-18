@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BarcodeScanner from './BarcodeScanner';
-import { analyzeNutritionLabel } from '../services/geminiService';
+import { analyzeNutritionLabel } from '../lib/gemini';
 import { useRef } from 'react';
 
 interface DietProps {

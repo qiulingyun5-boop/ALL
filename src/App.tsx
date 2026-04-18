@@ -236,16 +236,20 @@ export default function App() {
               <Sparkles className="h-3.5 w-3.5 text-[#D4AF37]" />
               <span className="text-[10px] font-black text-[#D4AF37] uppercase tracking-widest font-serif">仙阶晋升中</span>
             </div>
-            <Avatar 
+            <Button 
+              variant="ghost" 
+              size="icon"
               onClick={() => setShowAuthModal(true)}
-              className="h-10 w-10 border-2 border-[#D4AF37] shadow-lg ring-2 ring-[#D4AF37]/10 transition-transform hover:scale-110 cursor-pointer overflow-hidden p-0.5"
+              className="h-10 w-10 hover:bg-transparent p-0"
             >
-              {user?.photoURL ? (
-                <AvatarImage src={user.photoURL} />
-              ) : (
-                <AvatarFallback className="bg-[#8C0000] text-white font-bold">{user?.displayName?.[0] || '修'}</AvatarFallback>
-              )}
-            </Avatar>
+              <Avatar className="h-full w-full border-2 border-[#D4AF37] shadow-lg ring-2 ring-[#D4AF37]/10 transition-transform hover:scale-110 cursor-pointer overflow-hidden p-0.5">
+                {user?.photoURL ? (
+                  <AvatarImage src={user.photoURL} />
+                ) : (
+                  <AvatarFallback className="bg-[#8C0000] text-white font-bold">{user?.displayName?.[0] || '修'}</AvatarFallback>
+                )}
+              </Avatar>
+            </Button>
           </div>
         </div>
       </header>
