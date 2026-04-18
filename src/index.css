@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Noto Serif SC", serif;
+  --font-cursive: "Ma Shan Zheng", cursive;
+}
+
+:root {
+  --bg-cultivation: #fdfdfd;
+  --crimson: #8C0000;
+  --gold: #D4AF37;
+  --gold-glow: rgba(212, 175, 55, 0.2);
+}
+
+@layer base {
+  body {
+    @apply bg-zinc-50 text-zinc-900 antialiased;
+    font-size: 16px;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #e4e4e7;
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #d4d4d8;
+  }
+}
+
+.cultivation-card {
+  @apply bg-white shadow-xl border border-zinc-100 rounded-3xl;
+  background-image: radial-gradient(circle at top left, rgba(140, 0, 0, 0.03) 0%, transparent 50%);
+}
+
+.text-gold {
+  color: var(--gold);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px var(--gold-glow);
+}
+
+.crimson-gradient {
+  background: linear-gradient(135deg, #8C0000 0%, #E63946 100%);
+}
+
+.font-cursive {
+  font-family: var(--font-cursive);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}

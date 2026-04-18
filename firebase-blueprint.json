@@ -1,0 +1,131 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User specific settings and metadata",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "settings": { "$ref": "UserSettings" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "settings"]
+    },
+    "UserSettings": {
+      "title": "User Settings",
+      "description": "Nutritional and hydration goals",
+      "type": "object",
+      "properties": {
+        "calorieGoal": { "type": "number" },
+        "proteinGoal": { "type": "number" },
+        "carbsGoal": { "type": "number" },
+        "fatGoal": { "type": "number" },
+        "waterGoal": { "type": "number" }
+      }
+    },
+    "Meal": {
+      "title": "Dietary Record",
+      "description": "A single meal entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "calories": { "type": "number" },
+        "protein": { "type": "number" },
+        "carbs": { "type": "number" },
+        "fat": { "type": "number" },
+        "mealType": { "type": "string" },
+        "timestamp": { "type": "number" }
+      }
+    },
+    "WorkoutLog": {
+      "title": "Training Record",
+      "description": "A single workout exercise log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "exerciseId": { "type": "string" },
+        "sets": { "type": "number" },
+        "reps": { "type": "number" },
+        "weight": { "type": "number" },
+        "caloriesBurned": { "type": "number" },
+        "timestamp": { "type": "number" }
+      }
+    },
+    "WeightRecord": {
+      "title": "Weight Entry",
+      "description": "User weight tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "weight": { "type": "number" },
+        "timestamp": { "type": "number" }
+      }
+    },
+    "WaterLog": {
+      "title": "Hydration Record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "updatedAt": { "type": "number" }
+      }
+    },
+    "SupplementCheck": {
+      "title": "Supplement Tracking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "fishOil": { "type": "boolean" },
+        "vitamins": { "type": "boolean" },
+        "creatine": { "type": "boolean" },
+        "date": { "type": "string" }
+      }
+    },
+    "ChatMessage": {
+      "title": "AI Coach Message",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and settings"
+    },
+    "/users/{userId}/meals/{mealId}": {
+      "schema": "Meal",
+      "description": "Personal dietary logs"
+    },
+    "/users/{userId}/workouts/{workoutId}": {
+      "schema": "WorkoutLog",
+      "description": "Personal training logs"
+    },
+    "/users/{userId}/weights/{weightId}": {
+      "schema": "WeightRecord",
+      "description": "Weight history"
+    },
+    "/users/{userId}/water/{date}": {
+      "schema": "WaterLog",
+      "description": "Daily hydration tracking"
+    },
+    "/users/{userId}/supplements/{date}": {
+      "schema": "SupplementCheck",
+      "description": "Daily supplement tracking"
+    },
+    "/users/{userId}/chat/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Persistent AI Coach chat history"
+    }
+  }
+}

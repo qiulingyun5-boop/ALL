@@ -1,0 +1,117 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Public connection test path
+    match /_connection_test/{docId} {
+      allow read: if true;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Logic Guardians ---
+
+    // User Profile & Settings
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.uid == request.auth.uid 
+               && data.settings.calorieGoal is number
+               && data.settings.proteinGoal is number
+               && data.settings.carbsGoal is number
+               && data.settings.fatGoal is number
+               && data.settings.waterGoal is number;
+      }
+
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && isValidUser(incoming()) 
+                      && incoming().uid == existing().uid
+                      && incoming().createdAt == existing().createdAt
+                      && incoming().updatedAt == request.time;
+
+      // Meals
+      match /meals/{mealId} {
+        function isValidMeal(data) {
+          return data.userId == request.auth.uid
+                 && data.name is string && data.name.size() <= 100
+                 && data.calories is number
+                 && data.protein is number
+                 && data.carbs is number
+                 && data.fat is number
+                 && data.timestamp is number;
+        }
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMeal(incoming()) && isValidId(mealId);
+        allow update: if isOwner(userId) && isValidMeal(incoming()) 
+                        && incoming().userId == existing().userId
+                        && incoming().timestamp == existing().timestamp;
+        allow delete: if isOwner(userId);
+      }
+
+      // Workouts
+      match /workouts/{workoutId} {
+        function isValidWorkout(data) {
+          return data.userId == request.auth.uid
+                 && data.exerciseId is string
+                 && data.sets is number
+                 && data.timestamp is number;
+        }
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidWorkout(incoming()) && isValidId(workoutId);
+        allow update: if isOwner(userId) && isValidWorkout(incoming())
+                        && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // Weights
+      match /weights/{weightId} {
+        function isValidWeight(data) {
+          return data.userId == request.auth.uid && data.weight is number && data.timestamp is number;
+        }
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidWeight(incoming()) && isValidId(weightId);
+        allow delete: if isOwner(userId);
+      }
+
+      // Water
+      match /water/{date} {
+        allow get, write: if isOwner(userId) && date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+      }
+
+      // Supplements
+      match /supplements/{date} {
+        allow get, write: if isOwner(userId) && date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+      }
+
+      // Chat Messages
+      match /chat/{messageId} {
+        allow list, create: if isOwner(userId) && isValidId(messageId);
+      }
+    }
+  }
+}
