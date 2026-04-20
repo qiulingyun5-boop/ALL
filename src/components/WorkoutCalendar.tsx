@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Dumbbell, History } from 'lucide-react';
+import { getLocalDateString } from '../lib/dateUtils';
 import { WorkoutLog, Exercise } from '../types';
 import { EXERCISES } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,7 +15,7 @@ interface WorkoutCalendarProps {
 
 export default function WorkoutCalendar({ logs }: WorkoutCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string | null>(getLocalDateString());
 
   const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
@@ -30,7 +31,7 @@ export default function WorkoutCalendar({ logs }: WorkoutCalendarProps) {
   const monthName = currentDate.toLocaleString('zh-CN', { month: 'long' });
 
   const getDayLogs = (dateStr: string) => {
-    return logs.filter(log => new Date(log.timestamp).toISOString().split('T')[0] === dateStr);
+    return logs.filter(log => getLocalDateString(log.timestamp) === dateStr);
   };
 
   const calendarDays = [];
@@ -73,7 +74,7 @@ export default function WorkoutCalendar({ logs }: WorkoutCalendarProps) {
               const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const hasLogs = getDayLogs(dateStr).length > 0;
               const isSelected = selectedDate === dateStr;
-              const isToday = new Date().toISOString().split('T')[0] === dateStr;
+              const isToday = getLocalDateString() === dateStr;
 
               return (
                 <button
@@ -105,7 +106,7 @@ export default function WorkoutCalendar({ logs }: WorkoutCalendarProps) {
         >
           <div className="flex items-center justify-between px-2">
             <h4 className="text-sm font-bold text-zinc-500">
-              {selectedDate === new Date().toISOString().split('T')[0] ? '今日训练' : `${selectedDate} 详情`}
+              {selectedDate === getLocalDateString() ? '今日训练' : `${selectedDate} 详情`}
             </h4>
             <span className="text-[10px] font-bold bg-zinc-100 px-2 py-0.5 rounded-full text-zinc-400">
               {selectedDateLogs.length} 条记录

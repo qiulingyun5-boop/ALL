@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Activity, Flame, Droplets, Scale, TrendingUp, ChevronRight, ChevronLeft, Dumbbell, Target, Sparkles, Info, Settings as SettingsIcon, Save, Sword } from 'lucide-react';
 import { Meal, WorkoutLog, WeightRecord, BodyStats, UserSettings, SupplementCheck } from '../types';
+import { getLocalDateString } from '../lib/dateUtils';
 import { EXERCISES } from '../constants';
 import { ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line } from 'recharts';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -73,7 +74,7 @@ export default function Dashboard({
     setIsEditingGoals(false);
   };
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
   const todaySupps = supplements[todayStr] || { fishOil: false, vitamins: false, creatine: false };
 
   const toggleSupp = (key: keyof SupplementCheck) => {
@@ -96,13 +97,13 @@ export default function Dashboard({
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
-      return d.toISOString().split('T')[0];
+      return getLocalDateString(d);
     });
 
     return last7Days.map(date => {
-      const dayWeight = weightRecords.find(w => new Date(w.timestamp).toISOString().split('T')[0] === date)?.weight;
-      const dayBodyFat = bodyStats.find(s => new Date(s.timestamp).toISOString().split('T')[0] === date)?.bodyFat;
-      const dayLogs = workoutLogs.filter(l => new Date(l.timestamp).toISOString().split('T')[0] === date);
+      const dayWeight = weightRecords.find(w => getLocalDateString(w.timestamp) === date)?.weight;
+      const dayBodyFat = bodyStats.find(s => getLocalDateString(s.timestamp) === date)?.bodyFat;
+      const dayLogs = workoutLogs.filter(l => getLocalDateString(l.timestamp) === date);
       const dayVolume = calculateTotalVolume(dayLogs);
 
       return {

@@ -7,6 +7,7 @@ import AICoach from './components/AICoach';
 import Progress from './components/Progress';
 import SplashScreen from './components/SplashScreen';
 import AuthModal from './components/AuthModal';
+import { getLocalDateString } from './lib/dateUtils';
 import { Meal, WorkoutLog, WeightRecord, Exercise, ProgressPhoto, BodyStats, UserSettings } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -36,6 +37,12 @@ export default function App() {
   });
   const [waterIntake, setWaterIntake] = useState(() => {
     const saved = localStorage.getItem('waterIntake');
+    const lastUpdate = localStorage.getItem('lastWaterUpdate');
+    const today = getLocalDateString();
+    
+    if (lastUpdate !== today) {
+      return 0;
+    }
     return saved ? parseFloat(saved) : 0;
   });
   const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>(() => {
@@ -93,6 +100,7 @@ export default function App() {
       localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
       localStorage.setItem('weightRecords', JSON.stringify(weightRecords));
       localStorage.setItem('waterIntake', waterIntake.toString());
+      localStorage.setItem('lastWaterUpdate', getLocalDateString());
       localStorage.setItem('progressPhotos', JSON.stringify(progressPhotos));
       localStorage.setItem('bodyStats', JSON.stringify(bodyStats));
       localStorage.setItem('userSettings', JSON.stringify(userSettings));
@@ -196,7 +204,7 @@ export default function App() {
     const todayLogs = workoutLogs.filter(l => l.timestamp >= today);
 
     return {
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateString(),
       caloriesConsumed: todayMeals.reduce((acc, m) => acc + m.calories, 0),
       caloriesBurned: todayLogs.reduce((acc, l) => acc + l.caloriesBurned, 0),
       waterIntake
