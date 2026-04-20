@@ -8,6 +8,15 @@ import Progress from './components/Progress';
 import SplashScreen from './components/SplashScreen';
 import AuthModal from './components/AuthModal';
 import { getLocalDateString } from './lib/dateUtils';
+import { 
+  fetchUserSettings, 
+  syncUserSettings, 
+  fetchCollection, 
+  saveItem, 
+  deleteItem, 
+  saveDailyStatus, 
+  fetchDailyStatus 
+} from './lib/db';
 import { Meal, WorkoutLog, WeightRecord, Exercise, ProgressPhoto, BodyStats, UserSettings } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -94,6 +103,49 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Cloud Sync Effect - Load from cloud on login
+  useEffect(() => {
+    if (!user) return;
+
+    const syncFromCloud = async () => {
+      try {
+        console.log("正在同步云端数据...");
+        
+        const fetchData = async () => {
+          const cloudSettings = await fetchUserSettings(user.uid).catch(e => { console.error("设置读取失败:", e); return null; });
+          const cloudMeals = await fetchCollection<Meal>(user.uid, 'meals').catch(e => { console.error("药膳读取失败:", e); return []; });
+          const cloudWorkouts = await fetchCollection<WorkoutLog>(user.uid, 'workouts').catch(e => { console.error("炼体读取失败:", e); return []; });
+          const cloudWeights = await fetchCollection<WeightRecord>(user.uid, 'weights').catch(e => { console.error("体重读取失败:", e); return []; });
+          const cloudStats = await fetchCollection<BodyStats>(user.uid, 'bodyStats').catch(e => { console.error("体态读取失败:", e); return []; });
+          const cloudPhotos = await fetchCollection<ProgressPhoto>(user.uid, 'progressPhotos').catch(e => { console.error("相册读取失败:", e); return []; });
+          const cloudWater = await fetchDailyStatus(user.uid, 'water').catch(e => { console.error("甘露读取失败:", e); return {}; });
+          const cloudSupps = await fetchDailyStatus(user.uid, 'supplements').catch(e => { console.error("补剂读取失败:", e); return {}; });
+
+          if (cloudSettings) setUserSettings(cloudSettings);
+          if (cloudMeals.length > 0) setMeals(cloudMeals);
+          if (cloudWorkouts.length > 0) setWorkoutLogs(cloudWorkouts);
+          if (cloudWeights.length > 0) setWeightRecords(cloudWeights);
+          if (cloudStats.length > 0) setBodyStats(cloudStats);
+          if (cloudPhotos.length > 0) setProgressPhotos(cloudPhotos);
+          
+          const today = getLocalDateString();
+          if (cloudWater[today]) {
+            setWaterIntake(cloudWater[today].amount);
+          }
+          
+          if (Object.keys(cloudSupps).length > 0) setSupplements(cloudSupps as any);
+        };
+
+        await fetchData();
+        console.log("云端数据同步完成。");
+      } catch (err) {
+        console.error("同步过程中发生未知错误:", err);
+      }
+    };
+
+    syncFromCloud();
+  }, [user]);
+
   useEffect(() => {
     try {
       localStorage.setItem('meals', JSON.stringify(meals));
@@ -143,10 +195,12 @@ export default function App() {
       timestamp: Date.now()
     };
     setMeals([...meals, newMeal]);
+    if (user) saveItem(user.uid, 'meals', newMeal);
   };
 
   const deleteMeal = (id: string) => {
     setMeals(meals.filter(m => m.id !== id));
+    if (user) deleteItem(user.uid, 'meals', id);
   };
 
   const addWorkoutLog = (log: Omit<WorkoutLog, 'id' | 'timestamp'>) => {
@@ -156,10 +210,12 @@ export default function App() {
       timestamp: Date.now()
     };
     setWorkoutLogs([...workoutLogs, newLog]);
+    if (user) saveItem(user.uid, 'workouts', newLog);
   };
 
   const deleteWorkoutLog = (id: string) => {
     setWorkoutLogs(workoutLogs.filter(l => l.id !== id));
+    if (user) deleteItem(user.uid, 'workouts', id);
   };
 
   const addWeight = (weight: number) => {
@@ -169,6 +225,7 @@ export default function App() {
       timestamp: Date.now()
     };
     setWeightRecords([newRecord, ...weightRecords]);
+    if (user) saveItem(user.uid, 'weights', newRecord);
   };
 
   const addProgressPhoto = (photo: Omit<ProgressPhoto, 'id' | 'timestamp'>) => {
@@ -178,10 +235,12 @@ export default function App() {
       timestamp: Date.now()
     };
     setProgressPhotos([...progressPhotos, newPhoto]);
+    if (user) saveItem(user.uid, 'progressPhotos', newPhoto);
   };
 
   const deleteProgressPhoto = (id: string) => {
     setProgressPhotos(progressPhotos.filter(p => p.id !== id));
+    if (user) deleteItem(user.uid, 'progressPhotos', id);
   };
 
   const latestWeight = weightRecords.length > 0 ? weightRecords[0].weight : 70;
@@ -193,6 +252,7 @@ export default function App() {
       timestamp: Date.now()
     };
     setBodyStats([newStats, ...bodyStats]);
+    if (user) saveItem(user.uid, 'bodyStats', newStats);
   };
 
   const getDailyStats = () => {
@@ -276,13 +336,22 @@ export default function App() {
                 meals={meals} 
                 workoutLogs={workoutLogs} 
                 waterIntake={waterIntake}
-                setWaterIntake={setWaterIntake}
+                setWaterIntake={(val) => {
+                  setWaterIntake(val);
+                  if (user) saveDailyStatus(user.uid, 'water', getLocalDateString(), { amount: val });
+                }}
                 weightRecords={weightRecords}
                 bodyStats={bodyStats}
                 settings={userSettings}
-                onUpdateSettings={(newSettings) => setUserSettings(newSettings)}
+                onUpdateSettings={(newSettings) => {
+                  setUserSettings(newSettings);
+                  if (user) syncUserSettings(user.uid, newSettings);
+                }}
                 supplements={supplements}
-                onUpdateSupplements={(date, data) => setSupplements(prev => ({ ...prev, [date]: data }))}
+                onUpdateSupplements={(date, data) => {
+                  setSupplements(prev => ({ ...prev, [date]: data }));
+                  if (user) saveDailyStatus(user.uid, 'supplements', date, data);
+                }}
                 onAddWeight={addWeight}
                 onDeleteMeal={deleteMeal}
                 onDeleteLog={deleteWorkoutLog}

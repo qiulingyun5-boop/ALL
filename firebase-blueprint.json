@@ -115,6 +115,14 @@
       "schema": "WeightRecord",
       "description": "Weight history"
     },
+    "/users/{userId}/bodyStats/{statId}": {
+      "schema": "BodyStats",
+      "description": "Body fat and AI analysis history"
+    },
+    "/users/{userId}/progressPhotos/{photoId}": {
+      "schema": "ProgressPhoto",
+      "description": "User progress photos (front/side)"
+    },
     "/users/{userId}/water/{date}": {
       "schema": "WaterLog",
       "description": "Daily hydration tracking"

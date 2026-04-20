@@ -46,11 +46,18 @@ service cloud.firestore {
       }
 
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().createdAt == request.time;
-      allow update: if isOwner(userId) && isValidUser(incoming()) 
-                      && incoming().uid == existing().uid
-                      && incoming().createdAt == existing().createdAt
-                      && incoming().updatedAt == request.time;
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming());
+
+      // Body Stats
+      match /bodyStats/{statId} {
+        allow list, get, write: if isOwner(userId);
+      }
+
+      // Progress Photos
+      match /progressPhotos/{photoId} {
+        allow list, get, write: if isOwner(userId);
+      }
 
       // Meals
       match /meals/{mealId} {
@@ -100,11 +107,13 @@ service cloud.firestore {
 
       // Water
       match /water/{date} {
+        allow list: if isOwner(userId);
         allow get, write: if isOwner(userId) && date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
       }
 
       // Supplements
       match /supplements/{date} {
+        allow list: if isOwner(userId);
         allow get, write: if isOwner(userId) && date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
       }
 
