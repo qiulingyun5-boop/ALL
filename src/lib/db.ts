@@ -79,3 +79,34 @@ export const fetchDailyStatus = async (userId: string, type: 'water' | 'suppleme
   });
   return result;
 };
+
+export const pushFullStateToCloud = async (userId: string, data: {
+  settings: UserSettings,
+  meals: Meal[],
+  workouts: WorkoutLog[],
+  weights: WeightRecord[],
+  stats: BodyStats[],
+}) => {
+  const batch = writeBatch(db);
+  
+  // Settings
+  const userRef = doc(db, 'users', userId);
+  batch.set(userRef, { uid: userId, settings: data.settings, updatedAt: serverTimestamp() }, { merge: true });
+  
+  // Collections
+  const collections = {
+    meals: data.meals,
+    workouts: data.workouts,
+    weights: data.weights,
+    bodyStats: data.stats
+  };
+
+  Object.entries(collections).forEach(([name, items]) => {
+    items.forEach((item: any) => {
+      const docRef = doc(db, 'users', userId, name, item.id);
+      batch.set(docRef, { ...item, userId });
+    });
+  });
+
+  await batch.commit();
+};

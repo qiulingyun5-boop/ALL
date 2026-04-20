@@ -15,7 +15,8 @@ import {
   saveItem, 
   deleteItem, 
   saveDailyStatus, 
-  fetchDailyStatus 
+  fetchDailyStatus,
+  pushFullStateToCloud
 } from './lib/db';
 import { Meal, WorkoutLog, WeightRecord, Exercise, ProgressPhoto, BodyStats, UserSettings } from './types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -134,6 +135,20 @@ export default function App() {
           }
           
           if (Object.keys(cloudSupps).length > 0) setSupplements(cloudSupps as any);
+
+          // AUTO-MIGRATION LOGIC:
+          // If cloud data is virtually empty but local data exists, push local to cloud.
+          if (cloudMeals.length === 0 && meals.length > 0) {
+            console.log("检测到本地存有修行数据且云端为空，正在自动渡劫（同步至云端）...");
+            await pushFullStateToCloud(user.uid, {
+              settings: userSettings,
+              meals: meals,
+              workouts: workoutLogs,
+              weights: weightRecords,
+              stats: bodyStats
+            });
+            console.log("本地数据已成功飞升云端。");
+          }
         };
 
         await fetchData();
@@ -253,6 +268,24 @@ export default function App() {
     };
     setBodyStats([newStats, ...bodyStats]);
     if (user) saveItem(user.uid, 'bodyStats', newStats);
+  };
+
+  const handleForceSync = async () => {
+    if (!user) return;
+    try {
+      console.log("正在强制同步本地修行数据至云端...");
+      await pushFullStateToCloud(user.uid, {
+        settings: userSettings,
+        meals: meals,
+        workouts: workoutLogs,
+        weights: weightRecords,
+        stats: bodyStats
+      });
+      alert("同步成功！您的本地修行记录已成功飞升云端阵法。");
+    } catch (err) {
+      console.error("同步失败:", err);
+      alert("同步失败，请检查神识连接（网络）。");
+    }
   };
 
   const getDailyStats = () => {
@@ -522,7 +555,11 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+        onForceSync={handleForceSync}
+      />
     </div>
     </>
   );

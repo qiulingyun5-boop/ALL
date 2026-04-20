@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'allfit-v3';
+const CACHE_NAME = 'allfit-v4';
 const ASSETS = [
   '/',
   '/index.html',

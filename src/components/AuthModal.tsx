@@ -9,11 +9,13 @@ import { useEffect } from 'react';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onForceSync?: () => Promise<void>;
 }
 
-export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, onForceSync }: AuthModalProps) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -21,6 +23,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleForceSync = async () => {
+    if (!onForceSync) return;
+    setSyncing(true);
+    await onForceSync();
+    setSyncing(false);
+  };
 
   const handleSignIn = async () => {
     setLoading(true);
@@ -109,6 +118,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       <p className="text-sm font-black text-[#8C0000]">高级防护</p>
                     </div>
                   </div>
+
+                  <Button 
+                    variant="outline" 
+                    onClick={handleForceSync}
+                    disabled={syncing}
+                    className="w-full h-14 rounded-2xl border-zinc-200 text-zinc-900 font-bold transition-all flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? '正在飞升云端...' : '手动同步至云端'}
+                  </Button>
 
                   <Button 
                     variant="ghost" 
